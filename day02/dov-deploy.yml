@@ -1,0 +1,60 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata: 
+    name: myns
+    labels:
+        dept: eng
+        app: web
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: dov-deploy
+    namespace: myns
+    labels:
+        app: dov-bear
+spec:
+    replicas: 4
+    selector:
+        matchLabels:
+            app: dov-bear
+    template:
+        metadata: 
+            name: dov-bear
+            labels:
+                app: dov-bear
+            namespace: myns
+        spec:
+            containers:
+            - name: dov-bear-container
+              image: chukmunnlee/dov-bear:v1
+              imagePullPolicy: IfNotPresent
+              env:
+              - name: PORT
+                value: '5000'
+              - name: INSTANCE_NAME
+                valueFrom:
+                    fieldRef: 
+                        fieldPath: spec.nodeName
+              ports:
+              - containerPort: 5000
+                protocol: TCP
+                
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: dov-svc
+    namespace: myns
+    labels:
+        app: dov
+spec:
+    type: ClusterIP
+    selector:
+        name: dov-bear
+    ports: 
+        - port: 8080
+          targetPort: 5000
+           

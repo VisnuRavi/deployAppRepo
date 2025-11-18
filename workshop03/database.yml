@@ -1,0 +1,67 @@
+---
+apiVersion: v1 
+kind: PersistentVolumeClaim 
+metadata:
+  name: bggdb-pvc
+  namespace: bggns
+spec:
+  # how large the volume
+  resources:
+    requests:
+      storage: 1Gi
+  accessModes: 
+  - ReadWriteOncePod
+  storageClassName: do-block-storage 
+
+---
+#app needs the db user and pw, add readiness and liveness probe on here too for the app
+apiVersion: apps/v1 
+kind: Deployment 
+metadata:
+  name: bggdb-deploy 
+  namespace: bggns
+spec:
+  replicas: 1
+  selector: 
+    matchLabels:
+      app: bggdb-pod
+  template:
+    metadata:
+      labels:
+        app: bggdb-pod 
+    spec:
+      volumes:
+      - name: bggdb-pv 
+        persistentVolumeClaim: 
+          claimName: bggdb-pvc
+      containers:
+      - name: bggdb-pod-container
+        image: chukmunnlee/bgg-database:nov-2025
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: bgg-db-secret
+              key: DB_PW
+        ports:
+        - containerPort: 3306
+        volumeMounts:
+        - name: bggdb-pv
+          mountPath: /var/lib/mysql
+  
+
+--- 
+apiVersion: v1 
+kind: Service 
+metadata: 
+  name: bggdb-svc 
+  namespace: bggns 
+  labels:
+    app: bggdb-svc 
+spec: 
+  type: ClusterIP
+  selector: 
+    app: bggdb-pod
+  ports:
+  - port: 3306 
+    targetPort: 3306

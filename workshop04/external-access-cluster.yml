@@ -1,0 +1,59 @@
+---
+apiVersion: v1 
+kind: Service 
+metadata:
+  name: minio-expose-svc
+  namespace: minions
+  labels:
+    app: minio-expose-svc
+spec:
+  type: ClusterIP
+  selector:
+    app: minio-pod
+  ports:
+    - port: 9000
+      targetPort: 9000
+      name: data
+    - port: 9001
+      targetPort: 9001
+      name: console
+
+--- 
+apiVersion: networking.k8s.io/v1 
+kind: Ingress 
+metadata: 
+  name: minio-data-ing
+  namespace: minions
+spec: 
+  ingressClassName: nginx 
+  rules: 
+  - host: data-193.134.121.98.sslip.io
+    http:
+      paths:
+      - path: / 
+        pathType: Prefix
+        backend:
+          service:
+            name: minio-expose-svc
+            port:
+              number: 9000
+
+--- 
+apiVersion: networking.k8s.io/v1 
+kind: Ingress 
+metadata: 
+  name: minio-console-ing
+  namespace: minions
+spec: 
+  ingressClassName: nginx 
+  rules: 
+  - host: console-182.156.197.73.sslip.io
+    http:
+      paths:
+      - path: / 
+        pathType: Prefix
+        backend:
+          service:
+            name: minio-expose-svc
+            port:
+              number: 9001

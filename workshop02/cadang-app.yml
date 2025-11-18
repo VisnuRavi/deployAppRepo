@@ -1,0 +1,44 @@
+---
+apiVersion: apps/v1 
+kind: Deployment 
+metadata: 
+  name: cadang-deploy 
+  namespace: cadang-ns 
+  labels:
+    app: cadang-deploy
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: cadang-pod
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 30%
+      maxSurge: 30%
+  template: 
+    metadata:
+      name: cadang-pod
+      labels:
+        app: cadang-pod
+    spec:
+      containers:
+      - name: cadang-pod-container
+        image: chukmunnlee/cfdsa-workshop02:v1.5 
+        ports:
+        - containerPort: 3000
+
+--- 
+apiVersion: v1 
+kind: Service 
+metadata: 
+  name: cadang-svc 
+  namespace: cadang-ns 
+  labels:
+    app: cadang-svc
+spec:
+  type: ClusterIP 
+  selector:
+    app: cadang-pod 
+  ports:
+  - port: 80

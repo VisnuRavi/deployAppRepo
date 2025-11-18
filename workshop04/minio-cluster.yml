@@ -1,0 +1,66 @@
+---
+apiVersion: v1 
+kind: Service 
+metadata:
+  name: hminio-svc
+  namespace: minions
+spec:
+  clusterIP: None
+  selector:
+    app: minio-pod
+  ports:
+    - port: 9000
+      name: data
+    - port: 9001
+      name: console
+
+---
+apiVersion: apps/v1 
+kind: StatefulSet 
+metadata:
+  name: minio-stateful
+  namespace: minions
+spec:
+  serviceName: hminio-svc
+  replicas: 4
+  selector: 
+    matchLabels:
+      app: minio-pod
+  volumeClaimTemplates:
+    - metadata:
+         name: minio-vol
+      spec:
+        accessModes: [ ReadWriteOncePod ]
+        resources:
+          requests:
+            storage: 1Gi
+        storageClassName: do-block-storage
+  template:
+    metadata:
+      name: minio-pod
+      labels:
+        app: minio-pod 
+    spec:
+      containers:
+      - name: minio-pod-container
+        image: minio/minio:latest
+        args: 
+          - server
+          - --console-address
+          - ":9001"
+          - --address
+          - ":9000"
+          - http://minio-stateful{0...3}.hminio-svc.minions.svc.cluster.local/data
+        env:
+        - name: MINIO_ROOT_USER
+          value: minioadmin
+        - name: MINIO_ROOT_PASSWORD
+          value: minioadmin123
+        ports:
+        - containerPort: 9000
+        - containerPort: 9001
+        volumeMounts:
+        - name: minio-vol
+          mountPath: /data
+  
+  #must create another service so that it is a lb. 
